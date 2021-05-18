@@ -1,10 +1,14 @@
-// Starts Undo group, builds folders and runs moveToFolder function
-
-//https://youtu.be/W_qHvOZDlfc - Video showing how to grab other file tyeps
+///
+/// Project Sort
+/// Derek Borsheim
+/// 
+/// Starts Undo group, builds folders and runs moveToFolder function
+///
 
 app.beginUndoGroup("Sort Project");
 
-updateItems();
+var allItems = app.project.items;
+var allItemsLength = allItems.length;
 
 var videoTypes = ["mov", "mp4", "avi", "mts", "mpg", "mxf"];
 var vectorTypes = ["ai", "eps"];
@@ -13,7 +17,7 @@ var audioTypes = ["mp3", "wav", "aif", "m4a", "aiff"];
 
 var comps = [];
 var precomps = [];
-var videos = [];
+var assetComps = [];
 
 var psds = [];
 var psdFolderMain;
@@ -25,46 +29,85 @@ var vectorsFolderMain;
 var vectorFolders = [];
 var vectorFoldersNames = [];
 
+var videos = [];
 var images = [];
 var audio = [];
-var missingItems = [];
 var nullsAndSolids = [];
+var missingItems = [];
 
 var precompFolder = null;
 var compFolder = null;
+var assetCompsFolder = null;
 
 var precompAutoNameMultiple = "Pre-comp"; // Replace with just "Precomp" because the name wont have any other unique names, this only happens when it was precomped and had no name to give it
 var precompAutoNameSingle = " Comp"; // Remove to end of the name because when one layer is precomped it adds " Comp 1" to the end and we want to remove that to clean it up
 var mainComp = "# "; // Our comp we are renaming could be from a main comp and we need to make sure it doesnt have the hash mark so it doesnt sort as a main comp
+var rdcComp = "Ray - ";
+var skipComp = "*";
 
+//renamePSD(retrievePSDs());
+
+// Update the item list then remove everything from their folders.
 updateItems();
 removeItemsFromAllFolders();
+
+// Update the item list then delete all the folders.
 updateItems();
 removeAllFolders();
 
+// Update the item lists with all the items in the project
+retrieveAllItems();
+
+
 // Make Comps and Precomps folder, nest the Precomps folder into the Comps folder
+createFolder(" Compositions", comps);
+createFolder("Precomps", precomps);
+createFolder("Asset Comps", assetComps);
+createFolder(" PSD", psds);
+createFolder(" Vector", vectors);
+createFolder(" Video", videos);
+createFolder(" Images", images);
+createFolder(" Audio", audio);
+createFolder(" Nulls and Solids", nullsAndSolids);
+createFolder(" Missing Items", missingItems);
 
-moveToFolder(retrieveComps(), createFolder(" Compositions", comps));
-moveToFolder(precomps, createFolder("Precomps", precomps));
-moveToFolder(retrieveVideos(), createFolder(" Video", videos));
-
-psdFolderMain = moveToFolder(retrievePSDs(), createFolder(" PSD", psds), true);
-sortPSDs(psds);
-
-vectorFolderMain = moveToFolder(retrieveVectors(), createFolder(" Vector", vectors), true);
-sortVectors(vectors);
-
-moveToFolder(retrieveImages(), createFolder(" Images", images));
-moveToFolder(retrieveAudio(), createFolder(" Audio", audio));
-moveToFolder(retrieveMissingItems(), createFolder(" Missing Items", missingItems));
-moveToFolder(retrieveNullsAndSolids(), createFolder(" Nulls and Solids", nullsAndSolids));
+// Create main psd and vector folders, and put the items into subfolders based off the name of the original file.
+// Should in the future use "psds/vectors[1].file.name" to reference the original name
+//psdFolderMain = createFolder(" PSD", psds), true;
+//sortPSDs(psds);
+//vectorFolderMain = createFolder(" Vector", vectors), true;
+//sortVectors(vectors);
 
 movePrecompsFolder();
+moveAssetCompsFolder();
 
 renameMainCompsCorrectly(comps);
-renamePrecomps(precomps);
+//renamePrecomps(precomps);
 
 app.endUndoGroup();
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+//Update the Item list
+function updateItems()
+{
+	allItems = app.project.items;
+	allItemsLength = allItems.length;
+}
+
+function retrieveAllItems()
+{
+	retrieveComps();
+	retrieveVideos();
+	retrievePSDs();
+	retrieveVectors();
+	retrieveImages();
+	retrieveAudio();
+	retrieveNullsAndSolids();
+	retrieveMissingItems();
+}
 
 // Removes all the items from a folder and puts them in the root
 function removeItemsFromAllFolders()
@@ -120,13 +163,25 @@ function movePrecompsFolder()
 	}
 }
 
-
-//Update the Item list
-function updateItems()
+function moveAssetCompsFolder()
 {
-	allItems = app.project.items;
-	allItemsLength = allItems.length;
+	for(var i = 1; i <= allItemsLength; i++)
+	{
+		curItem = allItems[i];
+		if(curItem.name == "Asset Comps" && curItem.typeName == "Folder")
+			 assetCompsFolder = curItem;
+
+		if(curItem.name == "Compositions" && curItem.typeName == "Folder")
+			 compFolder = curItem;
+	}
+
+	if(compFolder !== null && assetCompsFolder !== null)
+	{
+		assetCompsFolder.parentFolder = compFolder;
+		return;
+	}
 }
+
 
 // Returns the name of the item after a "." (Ex, png, ai, mov)
 function checkExtention(fileName)
@@ -143,16 +198,21 @@ function removeExtention(fileName)
 }
 
 //Create Folder
+// If it's just the first argument, just create the folder and update the itemlist
+// If there are items listed, then move the items into the folder
 function createFolder(folderName, itemArrayForFolder)
 {
-	//If there are no items to put into a folder, dont make the folder
-	if(itemArrayForFolder.length == 0)
+
+	if(itemArrayForFolder != null && itemArrayForFolder.length == 0)
 		return null;
 
-	tempFolder = app.project.items.addFolder(folderName);
+	var newFolder = app.project.items.addFolder(folderName);
+
+	if(itemArrayForFolder != null)
+		moveToFolder(itemArrayForFolder, newFolder);
 
 	updateItems();
-	return tempFolder;
+	return newFolder;
 }
 
 // Move to Folder function.
@@ -203,7 +263,9 @@ function retrieveComps()
 
 		if(curItem instanceof CompItem)
 		{
-			if(curItem.name.substring(0,1) != "#")
+			if(curItem.name.substring(0,1) == "*")
+				assetComps.push(curItem)
+			else if(curItem.name.substring(0,1) != "#")
 				precomps.push(curItem)
 			else
 				comps.push (curItem)
@@ -390,36 +452,44 @@ function retrieveNullsAndSolids()
 
 function sortPSDs (psdItems)
 {
-
-
 	for (var i = 0; i < psdItems.length; i++)
 	{
 		curItem = psdItems[i];
 		itemName = curItem.name;
-		slashInd = itemName.indexOf("/");
+		slashInd = itemName.lastIndexOf("/");
 		dotLocation = itemName.lastIndexOf(".");
 
 		if(slashInd != -1)
 		{
-			mainPsd = " " + itemName.substring(slashInd + 1, dotLocation);
+			mainPsd = itemName.substring(slashInd + 1, dotLocation);
 			thisPsd = itemName.substring(0, slashInd);
 
-			//curItem.name = thisPsd;
+			curItem.name = thisPsd + ".psd";
 
-			mainPsdFolderInd = psdFoldersNames.indexOf(mainPsd);
+			mainPsdFolderInd = myIndexOf(psdFoldersNames, mainPsd);
 
 			// If the a folder doesnt exist, add it to the name list and create a folder
 			if(mainPsdFolderInd == -1)
 			{
-				psdFolders.push(createFolder(" " + mainPsd, psdItems));
-				psdFoldersNames.push(mainPsd);
+				//make the folder named after the psd
+				var newFolder = createFolder(mainPsd, psdItems[i]);
 
-				mainPsdFolderInd = psdFoldersNames.indexOf(mainPsd);
+				// Add this folder to the list of PSD folders
+				psdFolders.push(newFolder);
 
-				moveToFolder(psdFolders[mainPsdFolderInd], psdFolderMain);
+				// Add this folder name to the list of folder names
+				psdFoldersNames.push(newFolder.name);
+
+				// Create a variable that knows the index of
+				mainPsdFolderInd = myIndexOf(psdFoldersNames, mainPsd);
+
+				psdItems[i].parentFolder =  newFolder;
+				newFolder.parentFolder =  psdFolderMain;
+				//moveToFolder(newFolder, psdFolderMain);
 			}
 			
-			moveToFolder(psdItems[i], psdFolders[mainPsdFolderInd]);
+			psdItems[i].parentFolder =  psdFolders[myIndexOf(psdFoldersNames, mainPsd)];
+			//moveToFolder(psdItems[i], myIndexOf(psdFoldersNames, mainPsd));
 		}
 	}
 }
@@ -440,7 +510,7 @@ function sortVectors (vectorItems)
 			mainVector = itemName.substring(slashInd + 1, dotLocation);
 			thisVector = itemName.substring(0, slashInd);
 
-			//curItem.name = thisPsd;
+			//curItem.name = thisVector;
 
 			mainVectorFolderInd = vectorFoldersNames.indexOf(mainVector);
 
@@ -472,22 +542,26 @@ function renamePrecomps (comp)
 	{
 		for(var i = 0; i <= comp.length - 1; i++)
 		{
-			if(comp[i].usedIn.length != 0)
+
+			if(comp[i].name.indexOf(rdcComp) == -1 && comp[i].name.indexOf(skipComp) != 0)
 			{
-				parentComp = comp[i].usedIn[0].name;
-				compName = comp[i].name;
+				if(comp[i].usedIn.length != 0)
+				{
+					parentComp = comp[i].usedIn[0].name;
+					compName = comp[i].name;
 
-				namesCheck(compName, parentComp);
-				comp[i].name = parentComp + " > " + compName;
-			}
+					namesCheck(compName, parentComp);
+					comp[i].name = parentComp + " > " + compName;
+				}
 
-			if(comp[i].usedIn.length == 0)
-			{
-				compName = comp[i].name;
-				carrotInd = compName.indexOf(" > ");
+				if(comp[i].usedIn.length == 0)
+				{
+					compName = comp[i].name;
+					carrotInd = compName.indexOf(" > ");
 
-				if(carrotInd != -1)
-					comp[i].name = compName.substring(carrotInd + 3, compName.length);
+					if(carrotInd != -1)
+						comp[i].name = compName.substring(carrotInd + 3, compName.length);
+				}
 			}
 		}
 	}
@@ -514,6 +588,9 @@ function namesCheck (precomp, parent)
 	if(parent.indexOf(mainComp) != -1)
 		parentComp = parent.substring(parent.indexOf(" ") + parent.substring(parent.indexOf(""), parentComp.length).indexOf(" "), parent.length);
 
+	if(parent.indexOf(skipComp) != -1)
+		parentComp = parent.substring(parent.indexOf(" ") + parent.substring(parent.indexOf(""), parentComp.length).indexOf(" "), parent.length);
+
 	//If the parent comp has the " > " already somewhere in it's name, just take the last one e.g.; "1a > 2b > 3c > 4d" would just be "4d"
 	if(parentComp.indexOf(" > ") != -1)
 		parentComp = parentComp.substring(parentComp.lastIndexOf(" > ") + 3, parentComp.length);
@@ -526,4 +603,36 @@ function renameMainCompsCorrectly(mainComps)
 		if(mainComps[i].name.indexOf("#") == 0 && mainComps[i].name.indexOf(" ") != 1)
 			mainComps[i].name = mainComps[i].name.replace("#", "# ");
 	}
+}
+
+function renamePSD (psdItem) 
+{
+	if (psdItem == null)
+		return;
+	for(var i = 0; i <= psdItem.length - 1; i++)
+	{
+		if(psdItem[i].parentFolder.name != " PSD")
+		{
+			if(psdItem[i].name.indexOf(".psd") != 0)
+			{
+				psdItem[i].name = psdItem[i].name.substring(0,psdItem[i].name.indexOf(".psd"));
+			}
+			psdItem[i].name =  psdItem[i].name + "/" + psdItem[i].parentFolder.name + ".psd";
+		}
+		//alert(psdItem[i].name + ", name, and the folder it was in" + psdItem[i].parentFolder.name)
+	}
+}
+
+function myIndexOf(array, stringText)
+{
+	if(array.length == 0)
+		return -1;
+
+	for(var i = 0; i <= array.length; i++)
+	{
+		if(array[i] == stringText)
+			return i;
+	}
+
+	return -1;
 }

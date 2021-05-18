@@ -61,3 +61,6 @@ Random Rotation
 
 Render to Folder
  - Replacement for rendering, that renders specifically to the AE Render folder relative to the project
+
+Show Styler
+ - IN PROGRESS - Will combine, Apply Font Style, Copy to Comp, Project Sort, and more

@@ -62,7 +62,6 @@ function changeEasing(selectedProp)
 
 function propertyValueBasedEase(prop,key)
 {
-	alert("tes")
 	switch(prop.propertyValueType)
 	{
 		case PropertyValueType.ThreeD:

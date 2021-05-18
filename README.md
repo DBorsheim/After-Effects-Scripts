@@ -35,7 +35,7 @@ Ease In
 Ease Out
  - Eases out the selected keyframes
 
-Easing 2.0
+Easing
  - Eases the selected keyframes
 
 Label Color

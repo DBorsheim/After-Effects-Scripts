@@ -4,8 +4,10 @@
 ///
 
 // 50% has caused mulitple instances of glitchy behavior, so 50.1%
-var easeAmount = 50.1;
-var ease = new KeyframeEase(0, easeAmount);
+var easeInAmt = 50.1;
+var easeOutAmt = 50.1;
+var easeIn = new KeyframeEase(0, easeInAmt);
+var easeOut = new KeyframeEase(0, easeOutAmt);
 
 var comp = app.project.activeItem;
 var layers = comp.selectedLayers;
@@ -42,7 +44,7 @@ function changeEasing(selectedProp)
 	
 	if(selKeys instanceof Array)
 	{
-		app.beginUndoGroup("Easing");
+		app.beginUndoGroup("Keyframe In and Out Ease");
 
 		numOfKeyframes = selKeys.length;
 	
@@ -62,19 +64,19 @@ function propertyValueBasedEase(prop,key)
 	switch(prop.propertyValueType)
 	{
 		case PropertyValueType.ThreeD:
-			prop.setTemporalEaseAtKey(key, [ease, ease, ease], [ease, ease, ease]);
+			prop.setTemporalEaseAtKey(key, [easeIn, easeIn, easeIn], [easeOut, easeOut, easeOut]);
 			break;
 
 		case PropertyValueType.TwoD:
-			prop.setTemporalEaseAtKey(key, [ease, ease], [ease, ease]);
+			prop.setTemporalEaseAtKey(key, [easeIn, easeIn], [easeOut, easeOut]);
 			break;
 
 		case PropertyValueType.OneD:
-			prop.setTemporalEaseAtKey(key, [ease], [ease]);
+			prop.setTemporalEaseAtKey(key, [easeIn], [easeOut]);
 			break;
 
 		default:
-			prop.setTemporalEaseAtKey(key, [ease], [ease]);
+			prop.setTemporalEaseAtKey(key, [easeIn], [easeOut]);
 			break;
 	}
 }

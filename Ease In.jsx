@@ -1,55 +1,82 @@
-app.beginUndoGroup("Easy Ease");
+///
+/// Ease In
+/// Derek Borsheim
+///
 
-var easeAmount = prompt ("Ease Amount", "50");
+// 50% has caused mulitple instances of glitchy behavior, so 50.1%
+var easeInAmt = 50.1;
+var easeOutAmt = 0.1;
+var easeIn = new KeyframeEase(0, easeInAmt);
+var easeOut = new KeyframeEase(0, easeOutAmt);
 
 var comp = app.project.activeItem;
 var layers = comp.selectedLayers;
 var numLayers = layers.length;
-var numProperties = 0;
-var numKeyframes = 0;
-
-var zeroNum = 0.01;
-
-if(easeAmount >= 0 && easeAmount <= 100)
-{
-	var ease = new KeyframeEase(0, easeAmount);
-
-	changeAllKeys();
-}
 
 
-app.endUndoGroup();
+loopAllLayers(loopSelectedProps);
 
 
-function changeAllKeys()
+function loopAllLayers(functionForEachLayer)
 {
 	//Loop each layer
 	for (var i = 0; i < numLayers; i++)
 	{
-		numSelectedProps = layers[i].selectedProperties.length;
-		numProperties += numSelectedProps;
+		functionForEachLayer(layers[i], changeEasing);
+	}
+}
 
-		for (var x = 0; x < numSelectedProps; x++)
-		{
-			changeEasing(layers[i].selectedProperties[x])
-		}
+function loopSelectedProps(layerToLoop, functionForEachProp)
+{
+	//Loop each property
+	numSelectedProps = layerToLoop.selectedProperties.length;
 
+	for (var x = 0; x < numSelectedProps; x++)
+	{
+		functionForEachProp(layerToLoop.selectedProperties[x]);
 	}
 }
 
 
 function changeEasing(selectedProp)
 {
-	numOfKeyframes = selectedProp.selectedKeys.length
-
-	for (var k = 0; k < numOfKeyframes; k++)
+	selKeys = selectedProp.selectedKeys;
+	
+	if(selKeys instanceof Array)
 	{
-		keyToChange = selectedProp.selectedKeys[k];
+		app.beginUndoGroup("Keyframe In Ease");
 
-		if(selectedProp.propertyValueType == PropertyValueType.ThreeD)
-			selectedProp.setTemporalEaseAtKey(keyToChange, [ease, ease, ease], [zeroNum, zeroNum, zeroNum]);
+		numOfKeyframes = selKeys.length;
+	
+		for (var k = 0; k < numOfKeyframes; k++)
+		{
+			keyToChange = selectedProp.selectedKeys[k];
+			propertyValueBasedEase(selectedProp,keyToChange);
+		}
 
-		else
-			selectedProp.setTemporalEaseAtKey(keyToChange, [ease], [zeroNum]);
+		app.endUndoGroup();
+	}
+}
+
+
+function propertyValueBasedEase(prop,key)
+{
+	switch(prop.propertyValueType)
+	{
+		case PropertyValueType.ThreeD:
+			prop.setTemporalEaseAtKey(key, [easeIn, easeIn, easeIn], [easeOut, easeOut, easeOut]);
+			break;
+
+		case PropertyValueType.TwoD:
+			prop.setTemporalEaseAtKey(key, [easeIn, easeIn], [easeOut, easeOut]);
+			break;
+
+		case PropertyValueType.OneD:
+			prop.setTemporalEaseAtKey(key, [easeIn], [easeOut]);
+			break;
+
+		default:
+			prop.setTemporalEaseAtKey(key, [easeIn], [easeOut]);
+			break;
 	}
 }

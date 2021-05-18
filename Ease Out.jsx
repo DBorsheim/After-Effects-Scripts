@@ -1,5 +1,5 @@
 ///
-/// Ease In
+/// Ease Out
 /// Derek Borsheim
 ///
 

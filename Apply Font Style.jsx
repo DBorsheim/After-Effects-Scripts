@@ -104,10 +104,20 @@ var applyButton = group3.add("button", undefined, undefined, {name: "applyButton
 var checkbox1 = group3.add("checkbox", undefined, undefined, {name: "checkbox1"}); 
     checkbox1.text = "Apply on Selection"; 
 
+var newTextButton = group3.add("button", undefined, undefined, {name: "newText"}); 
+newTextButton.text = "New Text";
+
 var settingsButton = group3.add("button", undefined, undefined, {name: "settingsButton"}); 
     settingsButton.text = "Settings"; 
 
 applyButton.onClick = function() {app.beginUndoGroup("Apply " + fontStyleList.selection.toString() + " Font Style"); applyFontStyle(fileLocation, fontStyleList.selection.toString()); app.endUndoGroup();};
+
+newTextButton.onClick = function() {
+	app.beginUndoGroup("Apply " + fontStyleList.selection.toString() + " Font Style");
+	app.project.activeItem.layers.addText(fontStyleList.selection.toString());
+	applyFontStyle(fileLocation, fontStyleList.selection.toString());
+	app.endUndoGroup();
+};
 
 dropdown1.onChange = function() {
 	FindProjectFonts(dropdown1.selection.toString());
@@ -440,3 +450,5 @@ function renameFontFile(oldNameString, newNameString)
 	}
 	
 }
+
+
